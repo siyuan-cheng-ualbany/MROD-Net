@@ -1,0 +1,9 @@
+category,count
+excluded_missing_malignancy,13349
+excluded_out_of_range_malignancy,2
+no_series_uid,283
+reader_level_rows_written,7032
+reader_nodules_retained,7032
+reader_nodules_seen,20383
+series_with_annotations,883
+xml_files_processed,1319

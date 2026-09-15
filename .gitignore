@@ -1,0 +1,6 @@
+dicom/
+patches*/
+runs/
+*.zip
+*.npy
+__pycache__/

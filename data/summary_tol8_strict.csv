@@ -1,0 +1,14 @@
+category,count
+pairs_compared,52077
+pairs_rejected_same_reader,12383
+pairs_matched,8690
+pairs_rejected_spatial,31004
+clusters_not_fully_connected,0
+clusters_created,2741
+series_processed,883
+patients,875
+clusters_with_1_readers,809
+clusters_with_2_readers,500
+clusters_with_3_readers,505
+clusters_with_4_readers,927
+clusters_4_readers_exactly_4_marks,927
