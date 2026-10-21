@@ -104,7 +104,7 @@ def ordinal_to_score(logits):
 class Net(nn.Module):
     def __init__(self, encoder="convnext_tiny", pretrained=True, n_slices=7,
                  aggregation="attention", positional=True, head="ordinal_multi",
-                 n_heads=4, dropout=0.2):
+                 n_heads=4, dropout=0.2, proj_dim=512):
         super().__init__()
         self.cfg = dict(encoder=encoder, aggregation=aggregation, positional=positional,
                         head=head, n_heads=n_heads)
@@ -115,18 +115,19 @@ class Net(nn.Module):
             self.pos = nn.Parameter(torch.zeros(1, n_slices, d))
             nn.init.trunc_normal_(self.pos, std=0.02)
         self.agg = CenterGuidedAttention(d) if aggregation == "attention" else MeanPool()
-        self.proj = nn.Sequential(nn.Linear(d, 512), nn.GELU(), nn.Dropout(dropout))
+        self.proj = nn.Sequential(nn.Linear(d, proj_dim), nn.GELU(), nn.Dropout(dropout))
         self.head_kind, self.n_heads = head, n_heads
+        self.proj_dim = proj_dim
         if head == "ordinal_multi":
-            self.heads = nn.ModuleList([nn.Linear(512, N_THRESH) for _ in range(n_heads)])
+            self.heads = nn.ModuleList([nn.Linear(proj_dim, N_THRESH) for _ in range(n_heads)])
         elif head == "regress_multi":
-            self.heads = nn.ModuleList([nn.Linear(512, 1) for _ in range(n_heads)])
+            self.heads = nn.ModuleList([nn.Linear(proj_dim, 1) for _ in range(n_heads)])
         elif head == "ordinal_single":
-            self.heads = nn.ModuleList([nn.Linear(512, N_THRESH)])
+            self.heads = nn.ModuleList([nn.Linear(proj_dim, N_THRESH)])
         elif head == "scalar":
-            self.heads = nn.ModuleList([nn.Linear(512, 1)])
+            self.heads = nn.ModuleList([nn.Linear(proj_dim, 1)])
         elif head == "ldl":
-            self.heads = nn.ModuleList([nn.Linear(512, N_SCORES)])
+            self.heads = nn.ModuleList([nn.Linear(proj_dim, N_SCORES)])
         else:
             raise ValueError(head)
 
@@ -180,6 +181,10 @@ CONFIGS = {
     "nols_no_attn":     dict(encoder="convnext_tiny", aggregation="mean",      positional=True,  head="ordinal_multi", lambda_score=0.0),
     "nols_no_pos":      dict(encoder="convnext_tiny", aggregation="attention", positional=False, head="ordinal_multi", lambda_score=0.0),
     "nols_no_ordinal":  dict(encoder="convnext_tiny", aggregation="attention", positional=True,  head="regress_multi", lambda_score=0.0),
+    # Width of the shared projection between aggregation and the heads. 512 was
+    # inherited from the first version and never tuned; these measure it.
+    "proj256":  dict(encoder="convnext_tiny", aggregation="attention", positional=True, head="ordinal_multi", lambda_score=0.0, proj_dim=256),
+    "proj1024": dict(encoder="convnext_tiny", aggregation="attention", positional=True, head="ordinal_multi", lambda_score=0.0, proj_dim=1024),
     # Reviewer 1 asked explicitly for multi-output regression WITHOUT score sorting.
     # Same encoder, same aggregation, same heads; only the target order changes.
     "unsorted_regress": dict(encoder="convnext_tiny", aggregation="attention", positional=True, head="regress_multi", lambda_score=0.0, unsorted=True),

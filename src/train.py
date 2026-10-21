@@ -136,6 +136,7 @@ def main():
     ap.add_argument("--patience", type=int, default=8)
     ap.add_argument("--batch-size", type=int, default=4)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--n-slices", type=int, default=7)
     args = ap.parse_args()
 
     tag = f"{args.model}_f{args.fold}_s{args.seed}"
@@ -160,7 +161,7 @@ def main():
                                  shuffle=t, num_workers=args.workers, drop_last=False)
     tl, vl, sl = mk(tr, True), mk(va, False), mk(te, False)
 
-    model = M.build(args.model).to(dev)
+    model = M.build(args.model, n_slices=args.n_slices).to(dev)
     enc = [p for n, p in model.named_parameters() if n.startswith("encoder")]
     rest = [p for n, p in model.named_parameters() if not n.startswith("encoder")]
     opt = torch.optim.AdamW([{"params": enc, "lr": 5e-5}, {"params": rest, "lr": 1e-4}], weight_decay=1e-4)

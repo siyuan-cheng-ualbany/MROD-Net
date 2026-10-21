@@ -15,7 +15,7 @@ The pipeline runs end to end from the public LIDC-IDRI archives and reproduces t
 | `src/step5_folds.py` | patient-level stratified 5-fold with nested validation |
 | `src/models.py` | encoders, aggregation, heads, and the configuration registry |
 | `src/train.py` | trains one (configuration, fold, seed) and writes per-nodule held-out predictions |
-| `data/` | derived tables, small enough to ship: the 927-nodule study table with fold assignment, the series geometry, and the grouping summaries |
+| `data/` | derived tables, small enough to ship: the 927-nodule study table with fold assignment, the series geometry, the grouping summaries, and the held-out predictions of every reported run |
 
 Image data is not included. It is public.
 
@@ -46,7 +46,32 @@ python src/train.py --table table.csv --model mrou_no_lscore --fold 0 --seed 0 -
 
 `--no-transitive` is the grouping rule used in the paper: a nodule group is formed only when every pair of marks inside it matches, rather than chaining through a third mark. Dropping the flag reproduces the transitive behaviour and the smaller 881-nodule dataset.
 
-Run `train.py` over all configurations in `models.CONFIGS` × 5 folds × 3 seeds to reproduce the tables. Each run writes a metrics JSON and a per-nodule prediction CSV; the analysis reads those.
+Run `train.py` over all configurations in `models.CONFIGS` × 5 folds × 3 seeds to reproduce the tables; `proj256` and `proj1024` are the projection-width comparison. For the slice-count comparison, rebuild the patches with `--n-slices 3`, `5` or `9` (same `--z-step-mm 2.0`), build the table with `step5_folds.py` (the folds are the same), and train `mrou_no_lscore` with the matching `--n-slices`:
+
+```
+python src/train.py --table table_n9.csv --model mrou_no_lscore --n-slices 9 --fold 0 --seed 0 --out-dir runs_ns
+```
+
+Each run writes a metrics JSON and a per-nodule prediction CSV; the analysis reads those.
+
+## Held-out predictions
+
+`data/oof_predictions.csv.gz` holds the per-nodule held-out predictions of every run reported in the paper: 375 runs, 69,525 rows.
+
+- the main grid: the 20 configurations used in the result tables × 5 folds × 3 seeds (300 runs);
+- the projection width: `proj256` and `proj1024` (30 runs; 512 is the main grid's `mrou_no_lscore`);
+- the number of slices: `mrou_no_lscore` with 3, 5 and 9 slices (45 runs; 7 is the main grid).
+
+`mrou_no_lscore` is the proposed model, MROD-Net. Each combination of `model`, `n_slices` and `seed` covers all 927 nodules exactly once, each predicted by the fold in which it was held out.
+
+| column | |
+|---|---|
+| `cluster_id`, `patient_id` | nodule and patient; join to `data/table_strict.csv` |
+| `model`, `n_slices`, `fold`, `seed` | the run |
+| `true_mean`, `true_var_norm` | observed mean rating and normalised rating variance |
+| `pred_mean`, `pred_var_norm` | predicted mean rating and predicted disagreement |
+| `pred_score_1` … `pred_score_4` | the four predicted ratings, sorted |
+| `true_score_1` … `true_score_4` | the four observed ratings, sorted |
 
 ## Requirements
 
@@ -54,7 +79,7 @@ Python 3.11 with `torch`, `torchvision`, `timm` (Xception only), `pydicom`, `num
 
 ## Notes
 
-Two of the 300 runs stopped at or before epoch 3. A run whose best validation epoch is 3 or earlier was defined as a failed optimisation rather than an architectural result; both are reported in place rather than excluded.
+Three runs stopped at or before epoch 3: two in the main grid (`nols_no_pos` fold 1 seed 0, `single_ordinal_attn` fold 2 seed 2) and one at 256-dimensional projection (`proj256` fold 0 seed 1). A run whose best validation epoch is 3 or earlier was defined as a failed optimisation rather than an architectural result; all three are reported in place rather than excluded, and their predictions are in the file above.
 
 ## Citation
 
