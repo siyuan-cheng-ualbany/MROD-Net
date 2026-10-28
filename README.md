@@ -2,7 +2,7 @@
 
 Code for *MROD-Net: Predicting Inter-Reader Disagreement and Ordinal Malignancy Ratings for Pulmonary Nodules on CT*.
 
-The pipeline runs end to end from the public LIDC-IDRI archives and reproduces the dataset, the cross-validation folds and every number in the paper. Preprocessing takes about four minutes on 16 CPU cores; the full experimental grid is 300 GPU runs of roughly three minutes each.
+The pipeline runs end to end from the public LIDC-IDRI archives and reproduces the dataset, the cross-validation folds and every number in the paper. Preprocessing takes about four minutes on 16 CPU cores; the full experimental grid is 375 GPU runs of roughly three minutes each (300 in the main grid, 75 for the projection-width and slice-count experiments).
 
 ## What is here
 
